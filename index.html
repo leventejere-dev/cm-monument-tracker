@@ -1055,6 +1055,13 @@ table.tbl tbody tr:last-child td{border-bottom:0}
 .det-credit{padding:6px 12px;font-size:10.5px;background:var(--bg-2)}
 .det-credit a{color:var(--tx-3)}
 
+/* monument detail hero photo */
+.det-hero{position:relative;margin:-2px 0 18px;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+.det-hero-img{height:230px;background:#26262b center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#54555a}
+.det-hero-img svg{width:40px;height:40px}
+.det-hero-credit{position:absolute;right:8px;bottom:6px;font-size:10.5px;background:rgba(0,0,0,.55);border-radius:6px;padding:2px 8px}
+.det-hero-credit a{color:#e7e5df}
+
 </style>
 </head>
 <body>
@@ -2150,6 +2157,10 @@ window.CM_WIKI = (function () {
   function openMonument(id){
     const m=monById[id]; const prj=projectsByMon[id]||[];
     const body=`
+      <div class="det-hero">
+        <div id="monPhoto" class="det-hero-img ph">${ic("landmark")}</div>
+        <div id="monPhotoCredit" class="det-hero-credit"></div>
+      </div>
       <div class="detail-grid">
         <div>
           <p class="muted">${esc(loc(m,"description"))}</p>
@@ -2162,20 +2173,16 @@ window.CM_WIKI = (function () {
           <div class="card">
             <div class="pbar"><span class="pl">${t("arch_rel")}</span><span class="pt"><i style="width:${m.cm_relevance}%;background:linear-gradient(90deg,var(--gold),var(--orange))"></i></span><span class="pv">${m.cm_relevance}</span></div>
             <dl class="kv" style="margin-top:12px">
-              <dt>${t("lmi_code")}</dt><dd>${esc(m.lmi_code)}</dd>
+              <dt>${t("lmi_code")}</dt><dd>${esc(m.lmi_code||t("none"))}</dd>
               <dt>${t("col_county")}</dt><dd>${county(m.county)}</dd>
               <dt>${t("locality")}</dt><dd>${esc(m.locality)}</dd>
               <dt>${t("col_type")}</dt><dd>${esc(typeLabel(m.type))}</dd>
-              <dt>${t("dating")}</dt><dd>${esc(m.dating)}</dd>
-              <dt>${t("f_group")}</dt><dd>${esc(m.lmi_group)}</dd>
+              <dt>${t("dating")}</dt><dd>${esc(m.dating||t("none"))}</dd>
+              <dt>${t("f_group")}</dt><dd>${esc(m.lmi_group||t("none"))}</dd>
               <dt>${t("col_condition")}</dt><dd>${condText(m.physical_condition)}</dd>
               <dt>${t("roof")}</dt><dd>${esc(m.roof_type||t("none"))}</dd>
               <dt>${t("last_check")}</dt><dd>${fmtDate(m.last_checked)}</dd>
             </dl>
-          </div>
-          <div class="card pad0" style="margin-top:14px;overflow:hidden">
-            <div id="monPhoto" class="det-photo ph">${ic("landmark")}</div>
-            <div id="monPhotoCredit" class="det-credit"></div>
           </div>
           <div class="card" style="margin-top:14px" id="monMiniMap"><div id="mmap" style="height:190px;border-radius:8px"></div></div>
         </div>
