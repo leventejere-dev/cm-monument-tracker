@@ -1037,6 +1037,24 @@ table.tbl tbody tr:last-child td{border-bottom:0}
   .detail-grid{grid-template-columns:1fr}
 }
 
+/* ---- map markers, popups, detail photo (wiki enrichment) ---------------- */
+.cm-marker{background:transparent;border:0}
+.leaflet-popup.cm-popup .leaflet-popup-content-wrapper{padding:0;overflow:hidden;border-radius:12px;border:1px solid var(--line-strong)}
+.leaflet-popup.cm-popup .leaflet-popup-content{margin:0;width:240px!important;line-height:1.4}
+.leaflet-popup.cm-popup .leaflet-popup-tip{background:var(--bg-2)}
+.pop-img{height:118px;background:#26262b center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#54555a}
+.pop-b{padding:11px 13px 12px}
+.pop-t{font-weight:700;font-size:13.5px;line-height:1.25;color:var(--tx-0)}
+.pop-s{font-size:12px;color:var(--tx-1);margin-top:3px}
+.pop-m{font-size:11.5px;color:var(--tx-2);margin-top:3px}
+.pop-r{display:flex;gap:8px;align-items:center;margin-top:9px}
+.pop-links{display:flex;gap:14px;margin-top:11px;flex-wrap:wrap}
+.pop-links a{font-size:12px;font-weight:600;color:var(--gold);display:inline-flex;gap:4px;align-items:center}
+.pop-wiki{display:inline-block;margin-top:9px;font-size:11px;color:var(--tx-3)}
+.det-photo{height:200px;background:#26262b center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#54555a}
+.det-credit{padding:6px 12px;font-size:10.5px;background:var(--bg-2)}
+.det-credit a{color:var(--tx-3)}
+
 </style>
 </head>
 <body>
@@ -1450,6 +1468,98 @@ window.CM_GUIDE = function (lang, t) {
       ${p(g.h_evidence, g.evidence)}
     </div>`;
 };
+
+</script>
+<script>
+/* Client-side Wikimedia enrichment (runs in the USER's browser, CORS via origin=*).
+   Fetches a representative photo (Wikimedia Commons thumbnail) and precise coordinates
+   for each monument, so the map dots sit where the sites really are and every popup /
+   detail can show a picture. Nothing is fetched server-side; images are loaded by the
+   viewer's browser directly from Wikimedia (CC/PD content, credited to Wikipedia).
+
+   Two strategies:
+     * batchByTitles(lang, monuments)  — cheap: 50 exact titles per request (coords+thumb)
+     * lookup(m)                       — robust: full-text search RO→HU→EN for one monument
+*/
+window.CM_WIKI = (function () {
+  const cache = {};                 // monument.id -> {thumb, lat, lng, pageUrl, title, lang}
+  const inflight = {};
+
+  function apiBase(lang) { return "https://" + lang + ".wikipedia.org/w/api.php"; }
+
+  function parsePage(p, lang) {
+    if (!p || p.missing !== undefined) return {};
+    const out = {};
+    if (p.thumbnail && p.thumbnail.source) out.thumb = p.thumbnail.source;
+    if (p.coordinates && p.coordinates[0]) { out.lat = p.coordinates[0].lat; out.lng = p.coordinates[0].lon; }
+    out.title = p.title;
+    out.pageUrl = p.fullurl || ("https://" + lang + ".wikipedia.org/wiki/" + encodeURIComponent((p.title || "").replace(/ /g, "_")));
+    out.lang = lang;
+    return out;
+  }
+
+  // Cheap batch: up to 50 exact titles per call. Good for unambiguous names.
+  async function batchByTitles(lang, monuments) {
+    const chunks = [];
+    for (let i = 0; i < monuments.length; i += 45) chunks.push(monuments.slice(i, i + 45));
+    for (const chunk of chunks) {
+      const titles = chunk.map(m => (lang === "hu" && m.name_hu) ? m.name_hu : m.official_name);
+      const url = apiBase(lang) + "?action=query&format=json&origin=*&redirects=1"
+        + "&prop=pageimages|coordinates|info&piprop=thumbnail&pithumbsize=520&inprop=url"
+        + "&titles=" + encodeURIComponent(titles.join("|"));
+      let data;
+      try { data = await fetch(url).then(r => r.json()); } catch (e) { continue; }
+      const pages = data && data.query && data.query.pages;
+      if (!pages) continue;
+      // map normalized titles back to monuments
+      const byTitle = {};
+      Object.values(pages).forEach(p => { if (p.title) byTitle[p.title.toLowerCase()] = p; });
+      const norm = data.query.normalized || [];
+      const normMap = {}; norm.forEach(n => normMap[n.from.toLowerCase()] = n.to.toLowerCase());
+      chunk.forEach((m, i) => {
+        if (cache[m.id] && cache[m.id].thumb) return;
+        let key = titles[i].toLowerCase(); key = normMap[key] || key;
+        const p = byTitle[key];
+        if (!p) return;
+        const info = parsePage(p, lang);
+        if (info.thumb || info.lat) cache[m.id] = Object.assign(cache[m.id] || {}, info);
+      });
+    }
+  }
+
+  // Robust single lookup via full-text search, RO -> HU -> EN.
+  async function lookup(m) {
+    if (cache[m.id] && (cache[m.id].thumb || cache[m.id]._done)) return cache[m.id];
+    if (inflight[m.id]) return inflight[m.id];
+    const run = (async () => {
+      const attempts = [["ro", m.official_name + " " + (m.locality || "")]];
+      if (m.name_hu) attempts.push(["hu", m.name_hu + " " + (m.locality || "")]);
+      attempts.push(["en", m.official_name + " " + (m.locality || "")]);
+      let out = cache[m.id] || {};
+      for (const [lang, q] of attempts) {
+        if (out.thumb && out.lat) break;
+        const url = apiBase(lang) + "?action=query&format=json&origin=*&redirects=1"
+          + "&generator=search&gsrlimit=1&gsrnamespace=0&gsrsearch=" + encodeURIComponent(q)
+          + "&prop=pageimages|coordinates|info&piprop=thumbnail&pithumbsize=520&inprop=url";
+        let data;
+        try { data = await fetch(url).then(r => r.json()); } catch (e) { continue; }
+        const pages = data && data.query && data.query.pages;
+        if (!pages) continue;
+        const info = parsePage(Object.values(pages)[0], lang);
+        if (info.thumb && !out.thumb) { out.thumb = info.thumb; out.title = info.title; out.pageUrl = info.pageUrl; out.lang = lang; }
+        if (info.lat && out.lat == null) { out.lat = info.lat; out.lng = info.lng; }
+      }
+      out._done = true;
+      cache[m.id] = out;
+      return out;
+    })();
+    inflight[m.id] = run;
+    const r = await run; delete inflight[m.id];
+    return r;
+  }
+
+  return { cache, batchByTitles, lookup };
+})();
 
 </script>
 <script>
@@ -2063,11 +2173,18 @@ window.CM_GUIDE = function (lang, t) {
               <dt>${t("last_check")}</dt><dd>${fmtDate(m.last_checked)}</dd>
             </dl>
           </div>
-          <div class="card" style="margin-top:14px" id="monMiniMap"><div id="mmap" style="height:200px;border-radius:8px"></div></div>
+          <div class="card pad0" style="margin-top:14px;overflow:hidden">
+            <div id="monPhoto" class="det-photo ph">${ic("landmark")}</div>
+            <div id="monPhotoCredit" class="det-credit"></div>
+          </div>
+          <div class="card" style="margin-top:14px" id="monMiniMap"><div id="mmap" style="height:190px;border-radius:8px"></div></div>
         </div>
       </div>`;
     showModal(m.official_name, `${esc(m.locality)} · ${county(m.county)} · <span class="badge soft">${esc(m.name_hu||'')}</span>`, body);
     setTimeout(()=>miniMap("mmap",[m]),60);
+    if(window.CM_WIKI) CM_WIKI.lookup(m).then(w=>{ const ph=document.getElementById("monPhoto"), cr=document.getElementById("monPhotoCredit");
+      if(ph && w && w.thumb){ ph.classList.remove("ph"); ph.innerHTML=""; ph.style.backgroundImage=`url('${w.thumb}')`; }
+      if(cr && w && w.pageUrl){ cr.innerHTML=`<a href="${esc(w.pageUrl)}" target="_blank" rel="noopener">© Wikimedia / Wikipedia ↗</a>`; } });
   }
 
   function openProject(id){
@@ -2177,39 +2294,82 @@ window.CM_GUIDE = function (lang, t) {
   function nextFriday(){ const d=new Date(TODAY); do{ d.setDate(d.getDate()+1);}while(d.getDay()!==5); return d.toISOString().slice(0,10); }
 
   // ---- map ---------------------------------------------------------------
-  let mapObj=null;
+  let mapObj=null; const markersById={};
+  function haversineKm(la1,lo1,la2,lo2){ const R=6371,rad=Math.PI/180;
+    const dLa=(la2-la1)*rad, dLo=(lo2-lo1)*rad;
+    const a=Math.sin(dLa/2)**2+Math.cos(la1*rad)*Math.cos(la2*rad)*Math.sin(dLo/2)**2;
+    return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
+  function priColor(pr){ return pr?({HIGH:"#F4B422",MEDIUM:"#C0A062",WATCH:"#939598",LOW:"#6E6F72"}[pr.commercial_priority]):"#8a8b8e"; }
+  function bestProject(m){ const prj=projectsByMon[m.id]; return prj?[...prj].sort((a,b)=>b.opportunity_score-a.opportunity_score)[0]:null; }
+  function dotIcon(color,big){ const sz=big?18:13; return L.divIcon({className:"cm-marker",
+    html:`<span style="display:block;width:${sz}px;height:${sz}px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,.9);box-shadow:0 1px 5px rgba(0,0,0,.55)"></span>`,
+    iconSize:[sz,sz], iconAnchor:[sz/2,sz/2], popupAnchor:[0,-sz/2-1]}); }
+  function mapPopupHTML(m){
+    const pr=bestProject(m); const w=(window.CM_WIKI&&CM_WIKI.cache[m.id])||{};
+    const img = w.thumb
+      ? `<div class="pop-img" style="background-image:url('${esc(w.thumb)}')"></div>`
+      : `<div class="pop-img ph">${ic("landmark")}</div>`;
+    const addr=[m.address,m.locality,county(m.county)].filter(Boolean).join(", ");
+    return `<div class="pop">${img}<div class="pop-b">
+      <div class="pop-t">${esc(m.official_name)}</div>
+      <div class="pop-s">${esc(addr)}</div>
+      <div class="pop-m">${esc(typeLabel(m.type))}${m.dating?" · "+esc(m.dating):""}</div>
+      ${pr?`<div class="pop-r"><span class="badge stage">${esc(statusLabel(pr.status))}</span><span class="score ${scoreClass(pr.opportunity_score)}">${pr.opportunity_score}</span></div>`
+          :`<div class="pop-m muted">${t("registered_only")}</div>`}
+      <div class="pop-links">
+        <a data-act="open-monument" data-id="${m.id}" style="cursor:pointer">${ic("landmark")} ${t("overview")}</a>
+        ${pr?`<a data-act="open-project" data-id="${pr.id}" style="cursor:pointer">${t("projects")} →</a>`:""}
+      </div>
+      ${w.pageUrl?`<a class="pop-wiki" href="${esc(w.pageUrl)}" target="_blank" rel="noopener">Wikimedia ↗</a>`:`<span class="pop-wiki muted">${t("loading")}</span>`}
+    </div></div>`;
+  }
   function initMap(){
     if(typeof L==="undefined"||!L.map){ const el=document.getElementById("map"); if(el) el.innerHTML=`<div class="empty">${ic("map")}<br>${t("map_offline")}</div>`; return; }
     try{
+    Object.keys(markersById).forEach(k=>delete markersById[k]);
     const f=S.filters;
     let mons=relevantMonuments();
     if(f.county) mons=mons.filter(m=>m.county===f.county);
     mapObj=L.map("map",{scrollWheelZoom:true}).setView([45.94,25.0],7);
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-      {attribution:'© OpenStreetMap, © CARTO',maxZoom:18}).addTo(mapObj);
-    const layer = (L.markerClusterGroup? L.markerClusterGroup({maxClusterRadius:45}) : L.layerGroup());
-    let count=0;
-    mons.forEach(m=>{ const prj=projectsByMon[m.id];
-      let pr=prj?prj.sort((a,b)=>b.opportunity_score-a.opportunity_score)[0]:null;
+      {attribution:'© OpenStreetMap, © CARTO · fotó: Wikimedia',maxZoom:19}).addTo(mapObj);
+    const layer=(L.markerClusterGroup? L.markerClusterGroup({maxClusterRadius:48,showCoverageOnHover:false,spiderfyOnMaxZoom:true}) : L.layerGroup());
+    let count=0; const shown=[];
+    mons.forEach(m=>{ const pr=bestProject(m);
       if(f.priority && (!pr || pr.commercial_priority!==f.priority)) return;
-      if(f.hasProject==="yes" && !prj) return;
-      count++;
-      const color=pr?({HIGH:"#F4B422",MEDIUM:"#C0A062",WATCH:"#939598",LOW:"#6E6F72"}[pr.commercial_priority]):"#939598";
-      const mk=L.circleMarker([m.lat,m.lng],{radius:pr?8:6,color:color,weight:2,fillColor:color,fillOpacity:.55});
-      mk.bindPopup(`<b>${esc(m.official_name)}</b><br><span style="color:#98999B">${esc(m.locality)}, ${county(m.county)}</span>`
-        +(pr?`<br>${esc(statusLabel(pr.status))} · <b style="color:${color}">${pr.opportunity_score}</b>
-         <br><a href="#" onclick="window.__openPrj('${pr.id}');return false;">${t("view_all")} →</a>`
-         :`<br><span style="color:#98999B">${t("registered_only")}</span>`));
-      layer.addLayer(mk);
+      if(f.hasProject==="yes" && !projectsByMon[m.id]) return;
+      count++; shown.push(m);
+      const w=(window.CM_WIKI&&CM_WIKI.cache[m.id])||{};
+      const lat=(w.lat!=null)?w.lat:m.lat, lng=(w.lng!=null)?w.lng:m.lng;
+      const mk=L.marker([lat,lng],{icon:dotIcon(priColor(pr),!!pr),title:m.official_name});
+      mk.bindPopup(mapPopupHTML(m),{minWidth:232,maxWidth:262,className:"cm-popup"});
+      mk.on("popupopen",()=>{ if(!window.CM_WIKI) return; CM_WIKI.lookup(m).then(w2=>{
+        if(w2 && w2.lat!=null){ const dk=haversineKm(m.lat,m.lng,w2.lat,w2.lng); if(dk<60) mk.setLatLng([w2.lat,w2.lng]); }
+        if(mk.isPopupOpen && mk.isPopupOpen()) mk.setPopupContent(mapPopupHTML(m)); }); });
+      markersById[m.id]=mk; layer.addLayer(mk);
     });
     mapObj.addLayer(layer);
     const c=document.getElementById("mapCount"); if(c) c.textContent=count+" "+t("results");
+    enrichMap(shown);
     }catch(err){ const el=document.getElementById("map"); if(el) el.innerHTML=`<div class="empty">${t("map_offline")}</div>`; }
   }
+  async function enrichMap(mons){
+    if(!window.CM_WIKI) return;
+    const applyCoords=(list)=>{ list.forEach(m=>{ const w=CM_WIKI.cache[m.id], mk=markersById[m.id];
+      if(w && w.lat!=null && mk){ const dk=haversineKm(m.lat,m.lng,w.lat,w.lng); if(dk<60) mk.setLatLng([w.lat,w.lng]); } }); };
+    try{
+      await CM_WIKI.batchByTitles("ro", mons); applyCoords(mons);
+      const missing=mons.filter(m=>m.name_hu && !(CM_WIKI.cache[m.id]&&CM_WIKI.cache[m.id].thumb && CM_WIKI.cache[m.id].lat!=null));
+      if(missing.length){ await CM_WIKI.batchByTitles("hu", missing); applyCoords(missing); }
+    }catch(e){}
+  }
   function miniMap(id,mons){ if(typeof L==="undefined"||!L.map)return; const el=document.getElementById(id); if(!el)return; try{
-    const mm=L.map(id,{zoomControl:false,attributionControl:false,scrollWheelZoom:false}).setView([mons[0].lat,mons[0].lng],12);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{maxZoom:18}).addTo(mm);
-    mons.forEach(m=>L.circleMarker([m.lat,m.lng],{radius:8,color:"#C0A062",fillColor:"#C0A062",fillOpacity:.6}).addTo(mm));
+    const m0=mons[0]; const w=(window.CM_WIKI&&CM_WIKI.cache[m0.id])||{};
+    const lat=(w.lat!=null)?w.lat:m0.lat, lng=(w.lng!=null)?w.lng:m0.lng;
+    const mm=L.map(id,{zoomControl:false,attributionControl:false,scrollWheelZoom:false,dragging:true}).setView([lat,lng],13);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{maxZoom:19}).addTo(mm);
+    const mk=L.marker([lat,lng],{icon:dotIcon("#C0A062",true)}).addTo(mm);
+    if(window.CM_WIKI) CM_WIKI.lookup(m0).then(w2=>{ if(w2&&w2.lat!=null){ const dk=haversineKm(m0.lat,m0.lng,w2.lat,w2.lng); if(dk<60){ mm.setView([w2.lat,w2.lng],14); mk.setLatLng([w2.lat,w2.lng]); } } });
     }catch(err){}
   }
   window.__openPrj=id=>{ closeModal(); openProject(id); };
