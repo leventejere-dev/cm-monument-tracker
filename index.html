@@ -1039,6 +1039,16 @@ table.tbl tbody tr:last-child td{border-bottom:0}
 
 /* ---- map markers, popups, detail photo (wiki enrichment) ---------------- */
 .cm-marker{background:transparent;border:0}
+.cm-pulse{position:relative;display:block;width:100%;height:100%}
+.cm-pulse-dot{position:relative;z-index:2;display:block}
+.cm-pulse-ring{position:absolute;left:50%;top:50%;width:14px;height:14px;border-radius:50%;background:var(--pc,#F4B422);transform:translate(-50%,-50%);z-index:1;animation:cmpulse 1.7s ease-out infinite;pointer-events:none}
+@keyframes cmpulse{0%{transform:translate(-50%,-50%) scale(.9);opacity:.6}70%{transform:translate(-50%,-50%) scale(3.6);opacity:0}100%{opacity:0}}
+.map-legend .pulse-legend{position:relative;background:transparent!important}
+.map-legend .pulse-legend::before{content:"";position:absolute;left:50%;top:50%;width:12px;height:12px;border-radius:50%;background:var(--pc,#F4B422);transform:translate(-50%,-50%)}
+.map-legend .pulse-legend::after{content:"";position:absolute;left:50%;top:50%;width:12px;height:12px;border-radius:50%;background:var(--pc,#F4B422);transform:translate(-50%,-50%);animation:cmpulse 1.7s ease-out infinite}
+.pop-stage{display:flex;align-items:center;gap:6px;font-size:12px;margin:7px 0 3px;color:var(--tx-1);font-weight:500}
+.pop-stage .sdot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.pop-urgent{color:#F4B422;font-weight:600;font-size:10.5px;margin-left:2px}
 .leaflet-popup.cm-popup .leaflet-popup-content-wrapper{padding:0;overflow:hidden;border-radius:12px;border:1px solid var(--line-strong)}
 .leaflet-popup.cm-popup .leaflet-popup-content{margin:0;width:240px!important;line-height:1.4}
 .leaflet-popup.cm-popup .leaflet-popup-tip{background:var(--bg-2)}
@@ -1135,6 +1145,12 @@ window.CM_I18N = {
     // map
     map_sub: "Distribuția monumentelor și proiectelor pe teritoriul României.",
     legend: "Legendă", cluster_note: "Markerele sunt grupate (clustering) pentru performanță.",
+    legend_stage: "Etapa proiectului", map_hint: "Punctele colorate = oportunități pe etape; cele pulsatoare = urgente (licitație activă sau noutăți).",
+    f_product: "Produs", f_horizon: "Orizont", h_3: "3 luni", h_6: "6 luni", h_12: "12 luni",
+    f_urgent: "🔴 Urgente", f_thisweek: "✨ Noutăți", f_heat: "🔥 Hartă termică",
+    urgent: "urgente", opportunities: "oportunități", lg_urgent: "Urgent (licitație / noutăți)",
+    st_tender: "Licitație activă", st_funding: "Finanțare / proiectare", st_execution: "În execuție",
+    st_signal: "Semnal / evaluare", st_done: "Finalizat", st_hold: "Suspendat", st_none: "Doar înregistrat",
     // detail
     overview: "Prezentare", ai_summary: "Rezumat AI", timeline: "Cronologie evenimente",
     sources_evidence: "Surse și dovezi", potential_products: "Produse potențiale",
@@ -1221,6 +1237,12 @@ window.CM_I18N = {
     pipe_kanban: "Kanban", pipe_table: "Táblázat", pipe_sub: "Projektek szakaszok szerint. A kártyák mozgatása megfelelő jogosultságot igényel és audit-eseményt hoz létre.",
     map_sub: "Műemlékek és projektek eloszlása Románia területén.",
     legend: "Jelmagyarázat", cluster_note: "A markerek teljesítmény miatt csoportosítva (clustering) jelennek meg.",
+    legend_stage: "Projekt fázisa", map_hint: "A színes pöttyök = lehetőségek fázis szerint; a pulzálók = sürgősek (aktív közbeszerzés vagy heti újdonság).",
+    f_product: "Termék", f_horizon: "Időtáv", h_3: "3 hónap", h_6: "6 hónap", h_12: "12 hónap",
+    f_urgent: "🔴 Sürgős", f_thisweek: "✨ Újdonság", f_heat: "🔥 Hőtérkép",
+    urgent: "sürgős", opportunities: "lehetőség", lg_urgent: "Sürgős (közbeszerzés / újdonság)",
+    st_tender: "Aktív közbeszerzés", st_funding: "Finanszírozás / tervezés", st_execution: "Kivitelezés alatt",
+    st_signal: "Jelzés / felmérés", st_done: "Befejezett", st_hold: "Felfüggesztve", st_none: "Csak nyilvántartva",
     overview: "Áttekintés", ai_summary: "AI-összefoglaló", timeline: "Eseményidővonal",
     sources_evidence: "Források és bizonyíték", potential_products: "Potenciális termékek",
     scoring: "Pontozás", next_action: "Következő ajánlott lépés", internal: "Belső",
@@ -1300,6 +1322,12 @@ window.CM_I18N = {
     pipe_kanban: "Kanban", pipe_table: "Table", pipe_sub: "Projects by stage. Moving cards requires the right role and creates an audit event.",
     map_sub: "Distribution of monuments and projects across Romania.",
     legend: "Legend", cluster_note: "Markers are clustered for performance.",
+    legend_stage: "Project stage", map_hint: "Coloured dots = opportunities by stage; pulsing = urgent (open tender or this week's news).",
+    f_product: "Product", f_horizon: "Horizon", h_3: "3 months", h_6: "6 months", h_12: "12 months",
+    f_urgent: "🔴 Urgent", f_thisweek: "✨ New", f_heat: "🔥 Heatmap",
+    urgent: "urgent", opportunities: "opportunities", lg_urgent: "Urgent (tender / news)",
+    st_tender: "Active tender", st_funding: "Funding / design", st_execution: "In execution",
+    st_signal: "Signal / assessment", st_done: "Completed", st_hold: "On hold", st_none: "Registered only",
     overview: "Overview", ai_summary: "AI summary", timeline: "Event timeline",
     sources_evidence: "Sources & evidence", potential_products: "Potential products",
     scoring: "Scoring", next_action: "Next recommended action", internal: "Internal",
@@ -1515,6 +1543,8 @@ window.CM_GUIDE = function (lang, t) {
   const productById = Object.fromEntries(D.product_groups.map(g => [g.id, g]));
   const projectsByMon = {};
   D.projects.forEach(p => p.monument_ids.forEach(mid => (projectsByMon[mid] = projectsByMon[mid] || []).push(p)));
+  const eventsByMon = {};
+  D.events.forEach(e => { if(e.monument_id) (eventsByMon[e.monument_id] = eventsByMon[e.monument_id] || []).push(e); });
 
   // ---- i18n --------------------------------------------------------------
   function t(k){ return (I18N[S.lang] && I18N[S.lang][k]) || (I18N.ro[k]) || k; }
@@ -1876,22 +1906,32 @@ window.CM_GUIDE = function (lang, t) {
 
   // ---------- Map ----------
   VIEWS.map = function(){
+    const f=S.filters;
     return `${pageTitle(t("map"),t("map_sub"))}
       ${toolbar([
         selectFilter("county",t("f_county"),D.counties.map(c=>[c.code,c.name])),
-        selectFilter("priority",t("f_priority"),[["HIGH","HIGH"],["MEDIUM","MEDIUM"],["WATCH","WATCH"],["LOW","LOW"]]),
-        `<button class="chip-btn ${S.filters.hasProject==='yes'?'on':''}" data-act="map-proj-only">${t("f_has_project")}</button>`,
+        selectFilter("product",t("f_product"),D.product_groups.map(g=>[g.id,LBL(g,"label")])),
+        selectFilter("horizon",t("f_horizon"),[["3",t("h_3")],["6",t("h_6")],["12",t("h_12")]]),
+        `<button class="chip-btn ${f.hot?'on':''}" data-act="map-hot">${t("f_urgent")}</button>`,
+        `<button class="chip-btn ${f.thisweek?'on':''}" data-act="map-thisweek">${t("f_thisweek")}</button>`,
+        `<button class="chip-btn ${f.hasProject==='yes'?'on':''}" data-act="map-proj-only">${t("f_has_project")}</button>`,
+        `<button class="chip-btn ${f.heat?'on':''}" data-act="map-heat">${t("f_heat")}</button>`,
         `<button class="btn ghost sm" data-act="reset-filters">${ic("reset")} ${t("f_reset")}</button>`,
         `<span class="count-pill" id="mapCount"></span>`,
       ])}
       <div id="map"></div>
       <div class="flex wrap" style="margin-top:10px;gap:16px">
-        <div class="map-legend"><b class="small">${t("legend")}</b>
-          <div class="lg"><span class="mk" style="background:var(--orange)"></span> HIGH</div>
-          <div class="lg"><span class="mk" style="background:var(--gold)"></span> MEDIUM</div>
-          <div class="lg"><span class="mk" style="background:var(--silver)"></span> WATCH / ${t("registered_only")}</div>
+        <div class="map-legend"><b class="small">${t("legend_stage")}</b>
+          <div class="lg"><span class="mk" style="background:${stageColor('tender')}"></span> ${t("st_tender")}</div>
+          <div class="lg"><span class="mk" style="background:${stageColor('funding')}"></span> ${t("st_funding")}</div>
+          <div class="lg"><span class="mk" style="background:${stageColor('execution')}"></span> ${t("st_execution")}</div>
+          <div class="lg"><span class="mk" style="background:${stageColor('signal')}"></span> ${t("st_signal")}</div>
+          <div class="lg"><span class="mk" style="background:${stageColor('done')}"></span> ${t("st_done")}</div>
+          <div class="lg"><span class="mk" style="background:${stageColor('hold')}"></span> ${t("st_hold")}</div>
+          <div class="lg"><span class="mk" style="background:${stageColor('none')}"></span> ${t("st_none")}</div>
+          <div class="lg"><span class="mk pulse-legend" style="--pc:${stageColor('tender')}"></span> ${t("lg_urgent")}</div>
         </div>
-        <span class="muted small">${t("cluster_note")}</span>
+        <span class="muted small">${t("cluster_note")}<br>${t("map_hint")}</span>
       </div>`;
   };
 
@@ -2210,6 +2250,50 @@ window.CM_GUIDE = function (lang, t) {
   function daysBetween(a,b){ return Math.abs((new Date(a.slice(0,10))-new Date(b.slice(0,10)))/864e5); }
   function nextFriday(){ const d=new Date(TODAY); do{ d.setDate(d.getDate()+1);}while(d.getDay()!==5); return d.toISOString().slice(0,10); }
 
+  // ---- opportunity lifecycle / urgency / product / value helpers ---------
+  // Coarse renovation lifecycle used for map colouring. The commercially hottest
+  // moment for a metalwork supplier is the tender (procurement) window.
+  const STAGEMAP={early_signal:"signal",documentation:"signal",funding:"funding",
+    design:"funding",procurement:"tender",contract_awarded:"execution",
+    construction:"execution",completed:"done",on_hold:"hold"};
+  const LIFECYCLE=[
+    {key:"tender",    color:"#F4B422"},   // licitație activă — act now
+    {key:"funding",   color:"#C0A062"},   // finanțare / proiectare
+    {key:"execution", color:"#4FA96A"},   // contract atribuit / execuție
+    {key:"signal",    color:"#5B8DB8"},   // semnal / documentație
+    {key:"done",      color:"#8b8c90"},   // finalizat
+    {key:"hold",      color:"#9a5b5b"},   // suspendat / anulat
+    {key:"none",      color:"#5f6064"},   // doar înregistrat
+  ];
+  function lifeStage(m){ const pr=bestProject(m); if(!pr) return "none"; return STAGEMAP[pr.stage]||"signal"; }
+  function stageColor(k){ const s=LIFECYCLE.find(x=>x.key===k); return s?s.color:"#5f6064"; }
+  function stageLabel(k){ return t("st_"+k); }
+  function isThisWeek(m){ const prev=D.meta.prev_run||"";
+    const pr=bestProject(m); if(pr && pr.last_major_change && pr.last_major_change>prev) return true;
+    return (eventsByMon[m.id]||[]).some(e=>(e.date||e.publish_date||"")>prev); }
+  function isHot(m){ const pr=bestProject(m); if(!pr) return false;
+    if(pr.stage==="procurement") return true;              // open tender
+    return isThisWeek(m); }
+  function monProducts(m){ const pr=bestProject(m); return pr?(pr.potential_products||[]).map(p=>p.group):[]; }
+  function monValue(m){ const pr=bestProject(m); return (pr&&pr.estimated_value)?pr.estimated_value:0; }
+  function fmtVal(v){ if(!v) return "—"; if(v>=1e6) return (v/1e6).toFixed(v>=1e7?0:1)+" mil."; if(v>=1e3) return Math.round(v/1e3)+"k"; return ""+v; }
+  function addMonths(ymd,n){ const p=(ymd||"").split("-").map(Number); if(p.length<3) return null;
+    let y=p[0],mo=p[1]-1+n,d=p[2]; y+=Math.floor(mo/12); mo=((mo%12)+12)%12;
+    const s=x=>String(x).padStart(2,"0"); return y+"-"+s(mo+1)+"-"+s(d); }
+  function withinHorizon(m,months){ if(!months) return true; const pr=bestProject(m); if(!pr) return false;
+    const d=pr.next_check_date||pr.expected_end||pr.start_date; if(!d) return false;
+    const cutoff=addMonths(D.meta.today,months); return cutoff? d<=cutoff : true; }
+  function passesMapFilters(m){ const f=S.filters; const pr=bestProject(m);
+    if(f.county && m.county!==f.county) return false;
+    if(f.priority && (!pr || pr.commercial_priority!==f.priority)) return false;
+    if(f.hasProject==="yes" && !projectsByMon[m.id]) return false;
+    if(f.product && !monProducts(m).includes(f.product)) return false;
+    if(f.horizon && !withinHorizon(m,+f.horizon)) return false;
+    if(f.hot && !isHot(m)) return false;
+    if(f.thisweek && !isThisWeek(m)) return false;
+    if(m.lat==null||m.lng==null) return false;
+    return true; }
+
   // ---- map ---------------------------------------------------------------
   let mapObj=null; const markersById={};
   function haversineKm(la1,lo1,la2,lo2){ const R=6371,rad=Math.PI/180;
@@ -2218,9 +2302,12 @@ window.CM_GUIDE = function (lang, t) {
     return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
   function priColor(pr){ return pr?({HIGH:"#F4B422",MEDIUM:"#C0A062",WATCH:"#939598",LOW:"#6E6F72"}[pr.commercial_priority]):"#8a8b8e"; }
   function bestProject(m){ const prj=projectsByMon[m.id]; return prj?[...prj].sort((a,b)=>b.opportunity_score-a.opportunity_score)[0]:null; }
-  function dotIcon(color,big){ const sz=big?18:13; return L.divIcon({className:"cm-marker",
-    html:`<span style="display:block;width:${sz}px;height:${sz}px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,.9);box-shadow:0 1px 5px rgba(0,0,0,.55)"></span>`,
-    iconSize:[sz,sz], iconAnchor:[sz/2,sz/2], popupAnchor:[0,-sz/2-1]}); }
+  function dotIcon(color,size,hot){ const sz=size||13; const ring=Math.round(sz+16);
+    const dot=`<span style="display:block;width:${sz}px;height:${sz}px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,.9);box-shadow:0 1px 5px rgba(0,0,0,.55)"></span>`;
+    const html=hot
+      ? `<span class="cm-pulse" style="--pc:${color}"><span class="cm-pulse-ring"></span><span class="cm-pulse-dot">${dot}</span></span>`
+      : dot;
+    return L.divIcon({className:"cm-marker",html, iconSize:[sz,sz], iconAnchor:[sz/2,sz/2], popupAnchor:[0,-sz/2-1]}); }
   function mapPopupHTML(m){
     const pr=bestProject(m);
     const img = m.image
@@ -2231,7 +2318,9 @@ window.CM_GUIDE = function (lang, t) {
       <div class="pop-t">${esc(m.official_name)}</div>
       <div class="pop-s">${esc(addr)}</div>
       <div class="pop-m">${esc(typeLabel(m.type))}${m.dating?" · "+esc(m.dating):""}</div>
-      ${pr?`<div class="pop-r"><span class="badge stage">${esc(statusLabel(pr.status))}</span><span class="score ${scoreClass(pr.opportunity_score)}">${pr.opportunity_score}</span></div>`
+      ${pr?`<div class="pop-stage"><span class="sdot" style="background:${stageColor(lifeStage(m))}"></span>${esc(stageLabel(lifeStage(m)))}${isHot(m)?` <span class="pop-urgent">● ${t("urgent")}</span>`:""}</div>
+        <div class="pop-r"><span class="badge stage">${esc(statusLabel(pr.status))}</span><span class="score ${scoreClass(pr.opportunity_score)}">${pr.opportunity_score}</span></div>
+        ${pr.estimated_value?`<div class="pop-m muted">${t("est_value")}: ${fmtVal(pr.estimated_value)} RON</div>`:""}`
           :`<div class="pop-m muted">${t("registered_only")}</div>`}
       <div class="pop-links">
         <a data-act="open-monument" data-id="${m.id}" style="cursor:pointer">${ic("landmark")} ${t("overview")}</a>
@@ -2245,26 +2334,48 @@ window.CM_GUIDE = function (lang, t) {
     try{
     Object.keys(markersById).forEach(k=>delete markersById[k]);
     const f=S.filters;
-    // The map is the complete cadastre: every monument in the dataset gets a dot
-    // (coordinates are baked and verified). The list stays business-filtered; the map does not.
-    let mons=D.monuments.slice();
-    if(f.county) mons=mons.filter(m=>m.county===f.county);
+    // The map is the complete cadastre: every monument passing the filters gets a dot.
+    const mons=D.monuments.filter(passesMapFilters);
     mapObj=L.map("map",{scrollWheelZoom:true}).setView([45.94,25.0],7);
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
       {attribution:'© OpenStreetMap, © CARTO · fotó: Wikimedia',maxZoom:19}).addTo(mapObj);
-    const layer=(L.markerClusterGroup? L.markerClusterGroup({maxClusterRadius:48,showCoverageOnHover:false,spiderfyOnMaxZoom:true}) : L.layerGroup());
-    let count=0;
-    mons.forEach(m=>{ const pr=bestProject(m);
-      if(f.priority && (!pr || pr.commercial_priority!==f.priority)) return;
-      if(f.hasProject==="yes" && !projectsByMon[m.id]) return;
-      if(m.lat==null||m.lng==null) return;
-      count++;
-      const mk=L.marker([m.lat,m.lng],{icon:dotIcon(priColor(pr),!!pr),title:m.official_name});
-      mk.bindPopup(mapPopupHTML(m),{minWidth:232,maxWidth:262,className:"cm-popup"});
-      markersById[m.id]=mk; layer.addLayer(mk);
-    });
-    mapObj.addLayer(layer);
-    const c=document.getElementById("mapCount"); if(c) c.textContent=count+" "+t("results");
+
+    let count=mons.length, totalVal=0, hotN=0;
+    mons.forEach(m=>{ totalVal+=monValue(m); if(isHot(m)) hotN++; });
+
+    if(f.heat){
+      // County-heat mode: one bubble per county at the mean position of its monuments,
+      // sized by number of opportunities and coloured by total estimated value.
+      const byC={};
+      mons.forEach(m=>{ const c=(byC[m.county]=byC[m.county]||{n:0,val:0,la:0,lo:0,k:0});
+        c.n++; c.val+=monValue(m); c.la+=m.lat; c.lo+=m.lng; c.k++; });
+      const maxN=Math.max(1,...Object.values(byC).map(c=>c.n));
+      const layer=L.layerGroup();
+      Object.keys(byC).forEach(code=>{ const c=byC[code];
+        const r=10+26*Math.sqrt(c.n/maxN);
+        const intensity=Math.min(1,c.val/60e6);
+        const col=c.val>0?`rgba(244,180,34,${0.25+0.55*intensity})`:"rgba(147,149,152,.28)";
+        const cm=L.circleMarker([c.la/c.k,c.lo/c.k],{radius:r,color:"#C0A062",weight:1,
+          fillColor:col,fillOpacity:.8});
+        cm.bindPopup(`<div class="pop"><div class="pop-b"><div class="pop-t">${county(code)}</div>`+
+          `<div class="pop-m">${c.n} ${t("opportunities")}</div>`+
+          `<div class="pop-m muted">${t("est_value")}: ${fmtVal(c.val)} RON</div></div></div>`,
+          {className:"cm-popup"});
+        layer.addLayer(cm);
+      });
+      mapObj.addLayer(layer);
+    } else {
+      const layer=(L.markerClusterGroup? L.markerClusterGroup({maxClusterRadius:48,showCoverageOnHover:false,spiderfyOnMaxZoom:true}) : L.layerGroup());
+      mons.forEach(m=>{ const pr=bestProject(m); const stg=lifeStage(m); const hot=isHot(m);
+        const sz = pr ? Math.round(13 + 9*((pr.opportunity_score||0)/100)) : 9;
+        const mk=L.marker([m.lat,m.lng],{icon:dotIcon(stageColor(stg),sz,hot),title:m.official_name});
+        mk.bindPopup(mapPopupHTML(m),{minWidth:232,maxWidth:262,className:"cm-popup"});
+        markersById[m.id]=mk; layer.addLayer(mk);
+      });
+      mapObj.addLayer(layer);
+    }
+    const c=document.getElementById("mapCount");
+    if(c) c.textContent=`${count} ${t("results")} · ${hotN} ${t("urgent")} · ${fmtVal(totalVal)} RON`;
     }catch(err){ const el=document.getElementById("map"); if(el) el.innerHTML=`<div class="empty">${t("map_offline")}</div>`; }
   }
   function miniMap(id,mons){ if(typeof L==="undefined"||!L.map)return; const el=document.getElementById(id); if(!el)return; try{
@@ -2418,6 +2529,9 @@ window.CM_GUIDE = function (lang, t) {
       case "toggle-side": document.getElementById("sidebar").classList.toggle("open"); break;
       case "pipe-view": S.pipeView=a.dataset.v; render(); break;
       case "map-proj-only": S.filters.hasProject=S.filters.hasProject==="yes"?"":"yes"; render(); break;
+      case "map-hot": S.filters.hot=!S.filters.hot; render(); break;
+      case "map-thisweek": S.filters.thisweek=!S.filters.thisweek; render(); break;
+      case "map-heat": S.filters.heat=!S.filters.heat; render(); break;
       case "sort": { const k=a.dataset.key; if(S.listSort.key===k)S.listSort.dir*=-1;else S.listSort={key:k,dir:-1}; render(); break; }
       case "follow": { const id=a.dataset.id; if(S.followed.has(id))S.followed.delete(id);else S.followed.add(id);
         toast(t("toast_demo")); if(document.getElementById("modalBg")&&document.getElementById("modalBg").classList.contains("show"))openProject(id);else render(); break; }
